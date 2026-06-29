@@ -20,9 +20,6 @@ Originally built for my own daily study sessions and later shared with the Anki 
 
 ![Settings](https://i.postimg.cc/QxW5V9dY/1.png)
 
----
-
-
 
 ---
 
