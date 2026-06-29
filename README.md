@@ -22,9 +22,7 @@ Originally built for my own daily study sessions and later shared with the Anki 
 
 ---
 
-### Custom Appearance
 
-![Appearance](https://i.postimg.cc/VLbM5rNw/2.png)
 
 ---
 
