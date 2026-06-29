@@ -12,7 +12,7 @@ Originally built for my own daily study sessions and later shared with the Anki 
 
 ### Floating Typing Panel
 
-![Preview](https://postimg.cc/9zGrb94q/5aee0650)
+![Preview](https://i.postimg.cc/1Rdw9csM/3.gif)
 
 ---
 
