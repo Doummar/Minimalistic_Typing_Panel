@@ -1,0 +1,14 @@
+{
+    "title": "Minimalistic Typing Panel Settings",
+    "type": "object",
+    "properties": {
+        "auto_clear": {"title": "Auto-clear on next card", "type": "boolean", "default": true},
+        "font_size": {"title": "Font size", "type": "integer", "minimum": 8, "maximum": 48, "default": 16},
+        "font_family": {"title": "Font family", "type": "string", "default": "Arial"},
+        "line_height": {"title": "Line height", "type": "number", "minimum": 1.0, "maximum": 3.0, "default": 1.4},
+        "placeholder": {"title": "Placeholder text", "type": "string", "default": "Type your thoughts / answer here..."},
+        "semi_transparent": {"title": "Semi-transparent panel", "type": "boolean", "default": false},
+        "locked": {"title": "Lock panel position/size", "type": "boolean", "default": false},
+        "show_on_start": {"title": "Show panel automatically", "type": "boolean", "default": false}
+    }
+}

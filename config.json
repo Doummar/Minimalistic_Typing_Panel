@@ -1,0 +1,10 @@
+{
+    "font_size": 16,
+    "font_color": "#d4d4d4",
+    "bg_color": "#1e1e1e",
+    "width": 450,
+    "height": 250,
+    "shortcut": "Ctrl+T",
+    "locked": false,
+    "auto_clear": true
+}
