@@ -1,14 +1,44 @@
 {
     "title": "Minimalistic Typing Panel Settings",
+    "description": "Note: clicking the 'Config' button in Add-ons now opens the addon's own Settings dialog. This schema documents the underlying config.json shape.",
     "type": "object",
     "properties": {
-        "auto_clear": {"title": "Auto-clear on next card", "type": "boolean", "default": true},
-        "font_size": {"title": "Font size", "type": "integer", "minimum": 8, "maximum": 48, "default": 16},
+        "font_size": {"title": "Font size", "type": "integer", "minimum": 8, "maximum": 72, "default": 24},
         "font_family": {"title": "Font family", "type": "string", "default": "Arial"},
-        "line_height": {"title": "Line height", "type": "number", "minimum": 1.0, "maximum": 3.0, "default": 1.4},
-        "placeholder": {"title": "Placeholder text", "type": "string", "default": "Type your thoughts / answer here..."},
-        "semi_transparent": {"title": "Semi-transparent panel", "type": "boolean", "default": false},
-        "locked": {"title": "Lock panel position/size", "type": "boolean", "default": false},
-        "show_on_start": {"title": "Show panel automatically", "type": "boolean", "default": false}
+        "font_color": {"title": "Text color (hex)", "type": "string", "default": "#ffffff"},
+        "bg_color": {"title": "Panel background color (hex)", "type": "string", "default": "#1e1e1e"},
+        "center_text": {"title": "Center text alignment", "type": "boolean", "default": true},
+        "hide_border": {"title": "Hide outer border/edge", "type": "boolean", "default": true},
+        "opacity": {"title": "Panel background opacity (%)", "type": "integer", "minimum": 0, "maximum": 100, "default": 25},
+
+        "width": {"title": "Panel width", "type": "integer", "minimum": 100, "maximum": 2000, "default": 500},
+        "height": {"title": "Panel height", "type": "integer", "minimum": 50, "maximum": 2000, "default": 300},
+        "pos_x": {"title": "Panel X position", "type": "integer", "default": 200},
+        "pos_y": {"title": "Panel Y position", "type": "integer", "default": 200},
+        "screen_name": {"title": "Screen the saved position belongs to", "type": "string", "default": ""},
+        "snap_edges": {"title": "Snap to screen edges while dragging", "type": "boolean", "default": true},
+        "per_deck_position": {"title": "Remember position per deck", "type": "boolean", "default": false},
+        "deck_positions": {"title": "Per-deck saved positions (internal)", "type": "object", "default": {}},
+
+        "locked": {"title": "Lock panel position (disable drag)", "type": "boolean", "default": false},
+        "auto_clear": {"title": "Auto-clear text on next card", "type": "boolean", "default": true},
+        "persist_text": {"title": "Keep text as a persistent scratchpad", "type": "boolean", "default": false},
+        "saved_text": {"title": "Saved scratchpad text (internal)", "type": "string", "default": ""},
+        "enter_to_answer": {"title": "Press Enter to show answer", "type": "boolean", "default": true},
+        "lock_on_answer": {"title": "Lock typing on answer side", "type": "boolean", "default": true},
+
+        "shortcut_toggle": {"title": "Shortcut: show/hide panel", "type": "string", "default": "Ctrl+\\"},
+        "shortcut_clear": {"title": "Shortcut: clear text", "type": "string", "default": ""},
+        "shortcut_lock": {"title": "Shortcut: toggle lock", "type": "string", "default": ""},
+
+        "passthrough_shortcuts": {
+            "title": "Keyboard passthrough shortcuts",
+            "description": "Keys that, while the panel has focus, are forwarded to Anki's own shortcut system (e.g. for reveal/hint/occlusion add-ons) instead of being typed.",
+            "type": "array",
+            "items": {"type": "string"},
+            "default": []
+        },
+
+        "first_run": {"title": "Internal: first-run guide flag", "type": "boolean", "default": true}
     }
 }

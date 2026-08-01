@@ -1,10 +1,33 @@
 {
-    "font_size": 16,
-    "font_color": "#d4d4d4",
+    "font_size": 24,
+    "font_family": "Arial",
+    "font_color": "#ffffff",
     "bg_color": "#1e1e1e",
-    "width": 450,
-    "height": 250,
-    "shortcut": "Ctrl+T",
+    "center_text": true,
+    "hide_border": true,
+    "opacity": 25,
+
+    "width": 500,
+    "height": 300,
+    "pos_x": 200,
+    "pos_y": 200,
+    "screen_name": "",
+    "snap_edges": true,
+    "per_deck_position": false,
+    "deck_positions": {},
+
     "locked": false,
-    "auto_clear": true
+    "auto_clear": true,
+    "persist_text": false,
+    "saved_text": "",
+    "enter_to_answer": true,
+    "lock_on_answer": true,
+
+    "shortcut_toggle": "Ctrl+\\",
+    "shortcut_clear": "",
+    "shortcut_lock": "",
+
+    "passthrough_shortcuts": [],
+
+    "first_run": true
 }
