@@ -25,7 +25,7 @@
         "persist_text": {"title": "Keep text as a persistent scratchpad", "type": "boolean", "default": false},
         "saved_text": {"title": "Saved scratchpad text (internal)", "type": "string", "default": ""},
         "enter_to_answer": {"title": "Press Enter to show answer", "type": "boolean", "default": true},
-        "lock_on_answer": {"title": "Lock typing on answer side", "type": "boolean", "default": true},
+        "lock_on_answer": {"title": "Lock typing on answer side", "type": "boolean", "default": false},
 
         "shortcut_toggle": {"title": "Shortcut: show/hide panel", "type": "string", "default": "Ctrl+\\"},
         "shortcut_clear": {"title": "Shortcut: clear text", "type": "string", "default": ""},

@@ -21,7 +21,7 @@
     "persist_text": false,
     "saved_text": "",
     "enter_to_answer": true,
-    "lock_on_answer": true,
+    "lock_on_answer": false,
 
     "shortcut_toggle": "Ctrl+\\",
     "shortcut_clear": "",

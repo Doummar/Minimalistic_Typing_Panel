@@ -525,12 +525,26 @@ class SettingsDialog(QDialog):
             if k != exclude_key and self.conf.get(k) and QKeySequence(self.conf[k]) == norm
         ]
         if colliding_labels:
-            if not askUser(
-                f"'{seq}' is already used for: {', '.join(colliding_labels)}. Use it here too?",
+            tooltip(
+                f"'{seq}' is already used for: {', '.join(colliding_labels)}. "
+                "Each panel shortcut must use a unique key.",
                 parent=self,
-                defaultno=True,
-            ):
-                return False
+            )
+            return False
+
+        # A passthrough entry matching a panel shortcut would invoke the
+        # panel action before it could reach Anki. Reject it at record time;
+        # TypingPanel.load_config() also filters any hand-edited stale config.
+        passthrough_collision = any(
+            QKeySequence(s) == norm for s in self.conf.get("passthrough_shortcuts", [])
+        )
+        if exclude_key != _RECORDING_NEW_PASSTHROUGH and passthrough_collision:
+            tooltip(
+                f"'{seq}' is already configured as a passthrough shortcut. "
+                "Choose a different panel shortcut.",
+                parent=self,
+            )
+            return False
 
         return True
 

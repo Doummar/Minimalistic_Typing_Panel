@@ -33,31 +33,84 @@ Neither layer knows or cares which add-on, if any, is listening -- this
 module has no add-on-specific logic of any kind, by design.
 """
 from aqt import mw
-from aqt.qt import QApplication, QEvent, QKeyEvent, QKeySequence, Qt, QShortcut
+from aqt.qt import QApplication, QEvent, QKeyEvent, QKeySequence, Qt, QShortcut, QWidget
 
 
 def find_matching_shortcuts(sequence: QKeySequence) -> list:
-    """Every enabled QShortcut anywhere under Anki's main window whose key
-    matches `sequence`. Returns a snapshot list (not a live view), so a
-    triggered callback that adds/removes shortcuts of its own can't affect
-    the current dispatch pass."""
+    """Enabled main-window/application shortcuts that match `sequence`.
+
+    Child-widget shortcuts are deliberately excluded: a real key press would
+    only activate those while their owning widget was in the active shortcut
+    context, which is not true while the floating panel has focus.
+    This implementation is robust across PyQt5/PyQt6 where QShortcut may
+    not expose parentWidget().
+    """
     if sequence.isEmpty():
         return []
-    return [
-        sc for sc in mw.findChildren(QShortcut)
-        if sc.isEnabled() and sc.key() == sequence
-    ]
+
+    matches = []
+    for sc in mw.findChildren(QShortcut):
+        if not sc.isEnabled():
+            continue
+
+        # Some QShortcut implementations can raise or behave oddly when
+        # accessing key(); guard conservatively.
+        try:
+            sc_key = sc.key()
+        except Exception:
+            continue
+
+        if sc_key != sequence:
+            continue
+
+        # Prefer parentWidget() when available; fall back to parent().
+        parent = getattr(sc, "parentWidget", None)
+        if parent is None:
+            try:
+                parent = sc.parent()
+            except Exception:
+                parent = None
+
+        # Walk up to a top-level QWidget so shortcuts attached to a child
+        # object still resolve to mw when appropriate.
+        try:
+            p = parent
+            while p is not None and not isinstance(p, QWidget):
+                # QObject.parent() is a method; call it if present.
+                parent_fn = getattr(p, "parent", None)
+                if callable(parent_fn):
+                    p = parent_fn()
+                else:
+                    break
+            parent = p
+        except Exception:
+            # If anything unexpected happens during walk, keep the original
+            # parent and proceed conservatively.
+            parent = parent
+
+        if parent is mw and sc.context() in (
+            Qt.ShortcutContext.WindowShortcut,
+            Qt.ShortcutContext.ApplicationShortcut,
+        ):
+            matches.append(sc)
+
+    return matches
 
 
 def _dispatch_to_shortcuts(sequence: QKeySequence) -> bool:
-    """Layer 1: fire every shortcut matching `sequence` by emitting its own
-    `activated` signal directly -- the exact same signal Qt itself would
-    emit if the main window had been focused and the key had matched
-    through its normal shortcut map. Returns whether anything matched."""
+    """Layer 1: fire one unambiguous, eligible main-window shortcut.
+
+    Qt emits ``activatedAmbiguously`` rather than ``activated`` when a key
+    collides with another shortcut. Do not run every matching callback here:
+    that would turn a single key press into unrelated actions.
+    """
     matches = find_matching_shortcuts(sequence)
-    for sc in matches:
-        sc.activated.emit()
-    return bool(matches)
+    if len(matches) != 1:
+        # An ambiguous shortcut is still consumed by Qt; it must not fall
+        # through to the reviewer webview as if no shortcut existed.
+        return bool(matches)
+    matches[0].activated.emit()
+    return True
 
 
 def _text_for_key(key: int, modifiers: Qt.KeyboardModifier) -> str:
@@ -111,4 +164,3 @@ def dispatch(sequence: QKeySequence) -> bool:
     if _dispatch_to_shortcuts(sequence):
         return True
     return _dispatch_to_webview(sequence)
-

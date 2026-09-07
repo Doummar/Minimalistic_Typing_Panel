@@ -21,7 +21,7 @@ _WHAT_IT_DOES = [
 
 _HOW_TO_USE = [
     "Toggle the panel with your configured shortcut (default Ctrl+\\)",
-    "Click and hold anywhere on the panel to drag it",
+    "Drag the thin strip at the top of the panel to move it",
     "Press Escape while it's focused to hide it",
     "Lock it in place from Settings to stop accidental dragging",
     "Use your Clear-text shortcut, if set, to wipe it instantly",

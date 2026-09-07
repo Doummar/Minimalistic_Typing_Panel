@@ -11,6 +11,7 @@ from .config_utils import get_config, write_config
 
 SNAP_MARGIN = 24  # px; how close to a screen edge before the panel snaps to it
 TEXT_SAVE_DEBOUNCE_MS = 600  # wait for a pause in typing before writing to disk
+DRAG_HANDLE_HEIGHT = 14  # px; keeps dragging separate from text selection
 
 
 class _DialogCloseWatcher(QObject):
@@ -35,6 +36,45 @@ class _DialogCloseWatcher(QObject):
             self._panel._on_blocking_dialog_closed(self._key)
             self.deleteLater()
         return False
+
+
+class _DragHandle(QWidget):
+    """A small, transparent strip that moves the panel without stealing
+    mouse interactions from the text editor (caret placement and selection)."""
+
+    def __init__(self, panel: "TypingPanel", parent=None):
+        super().__init__(parent)
+        self._panel = panel
+        self._dragging_panel = False
+        self.setFixedHeight(DRAG_HANDLE_HEIGHT)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self.setToolTip("Drag to move the typing panel")
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._panel._begin_drag(
+            event.globalPosition().toPoint()
+        ):
+            self._dragging_panel = True
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._dragging_panel:
+            self._panel._move_drag(event.globalPosition().toPoint())
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._dragging_panel and event.button() == Qt.MouseButton.LeftButton:
+            self._dragging_panel = False
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            self._panel._finish_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
 
 class TypingEdit(QTextEdit):
@@ -130,8 +170,13 @@ class TypingPanel(QWidget):
         self.container_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.addWidget(self.container)
 
+        # A dedicated handle means the editor remains a normal text editor:
+        # clicking or dragging in it still places the caret/selects text.
+        self.drag_handle = _DragHandle(self, self.container)
+        self.container_layout.addWidget(self.drag_handle)
+
         self.text_edit = TypingEdit(self)
-        self.container_layout.addWidget(self.text_edit)
+        self.container_layout.addWidget(self.text_edit, 1)
         self.text_edit.textChanged.connect(self.on_text_changed_by_user)
 
         # Small corner badge shown whenever dragging is disabled, so a
@@ -262,9 +307,8 @@ class TypingPanel(QWidget):
     # Anki windows like the Edit Current dialog, since neither is a Qt
     # child of the other. Rather than removing the hint (which would break
     # the panel's core purpose), we keep the panel hidden for as long as any
-    # such window is open, regardless of how a show is later requested, and
-    # restore it once every one of them has closed -- without ever touching
-    # _user_wants_visible, so the user's own show/hide choice is unaffected
+    # such window is open, and restore it once every one of them has closed -- 
+    # without ever touching _user_wants_visible, so the user's own show/hide choice is unaffected
     # by this purely programmatic, temporary suppression.
     def register_blocking_dialog(self, instance: QWidget):
         """Call when Anki opens a dialog-manager window (Edit Current,
@@ -304,17 +348,36 @@ class TypingPanel(QWidget):
 
         self.locked = conf.get("locked", False)
         self.lock_indicator.setVisible(self.locked)
+        self.drag_handle.setCursor(
+            Qt.CursorShape.ArrowCursor if self.locked else Qt.CursorShape.OpenHandCursor
+        )
 
-        self._passthrough_sequences = [
-            QKeySequence(s) for s in conf.get("passthrough_shortcuts", []) if s
-        ]
+        # A passthrough shortcut may not overlap with one of this addon's own
+        # shortcuts. Settings prevents new overlaps, and this defensive filter
+        # also protects hand-edited/stale configs from hiding or clearing the
+        # panel when the user intended to forward a key to Anki.
+        panel_shortcuts = {
+            QKeySequence(conf[key])
+            for key in ("shortcut_toggle", "shortcut_clear", "shortcut_lock")
+            if conf.get(key)
+        }
+        self._passthrough_sequences = []
+        for shortcut in conf.get("passthrough_shortcuts", []):
+            sequence = QKeySequence(shortcut)
+            if shortcut and not sequence.isEmpty() and sequence not in panel_shortcuts:
+                self._passthrough_sequences.append(sequence)
 
         self.resize(conf.get("width", 500), conf.get("height", 300))
         self._apply_position(conf)
 
-        opacity = max(0, min(100, conf.get("opacity", 25))) / 100.0
+        # Avoid fully transparent windows which can become click-through on
+        # some platforms (notably Windows when using WA_TranslucentBackground).
+        # Use 1% alpha instead of 0% so the panel stays interactive while
+        # remaining visually invisible.
+        opacity = max(0, min(100, conf.get("opacity", 25)))
+        css_alpha = f"{opacity}%" if opacity > 0 else "1%"
         qcolor = QColor(conf.get("bg_color", "#1e1e1e"))
-        rgba_bg = f"rgba({qcolor.red()}, {qcolor.green()}, {qcolor.blue()}, {opacity})"
+        rgba_bg = f"rgba({qcolor.red()}, {qcolor.green()}, {qcolor.blue()}, {css_alpha})"
         border_css = "none" if conf.get("hide_border", True) else "1px solid #444"
         self.container.setStyleSheet(
             f"QFrame {{ background-color: {rgba_bg}; border: {border_css}; border-radius: 12px; }}"
@@ -465,22 +528,43 @@ class TypingPanel(QWidget):
     # ------------------------------------------------------------------
     # Dragging, with edge snapping
     # ------------------------------------------------------------------
+    def _begin_drag(self, global_pos: QPoint) -> bool:
+        if self.locked:
+            return False
+        self._dragging = True
+        self._drag_pos = global_pos - self.frameGeometry().topLeft()
+        return True
+
+    def _move_drag(self, global_pos: QPoint):
+        if self._dragging:
+            self.move(global_pos - self._drag_pos)
+
+    def _finish_drag(self):
+        if not self._dragging:
+            return
+        self._dragging = False
+        self._snap_to_edges_if_enabled()
+        self.save_position()
+
     def mousePressEvent(self, event):
-        if not self.locked and event.button() == Qt.MouseButton.LeftButton:
-            self._dragging = True
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+        if event.button() == Qt.MouseButton.LeftButton and self._begin_drag(event.globalPosition().toPoint()):
             event.accept()
+            return
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if self._dragging:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            self._move_drag(event.globalPosition().toPoint())
             event.accept()
+            return
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if self._dragging:
-            self._dragging = False
-            self._snap_to_edges_if_enabled()
-            self.save_position()
+            self._finish_drag()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def _snap_to_edges_if_enabled(self):
         conf = get_config()

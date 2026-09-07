@@ -48,7 +48,7 @@ DEFAULT_CONFIG = {
     "persist_text": False,       # keep scratchpad content across cards/sessions
     "saved_text": "",            # content saved when persist_text is enabled
     "enter_to_answer": True,
-    "lock_on_answer": True,
+    "lock_on_answer": False,
 
     # --- Shortcuts ---
     "shortcut_toggle": "Ctrl+\\",
